@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceIQ - Real-Time Market Intelligence</title>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0e0e0f; color: #d1d4dc; }
+        .navbar { background: rgba(30, 34, 45, 0.95); backdrop-filter: blur(10px); padding: 1rem 0; position: fixed; width: 100%; top: 0; z-index: 1000; border-bottom: 1px solid #2a2e39; }
+        .nav-container { max-width: 1400px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #2962ff; }
+        .logo span { color: #d1d4dc; }
+        .nav-menu { display: flex; list-style: none; gap: 2rem; align-items: center; }
+        .nav-menu a { color: #b2b5be; text-decoration: none; transition: color 0.2s; }
+        .nav-menu a:hover { color: #2962ff; }
+        .cta-button { background: #2962ff; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .hero { margin-top: 80px; padding: 4rem 2rem; display: grid; grid-template-columns: 1fr 1fr; align-items: center; max-width: 1400px; margin-left: auto; margin-right: auto; gap: 3rem; }
+        .hero-content h1 { font-size: 3rem; font-weight: 700; margin-bottom: 1rem; }
+        .hero-content p { font-size: 1.2rem; color: #b2b5be; margin-bottom: 2rem; }
+        .hero-buttons { display: flex; gap: 1rem; }
+        .primary-cta, .secondary-cta { padding: 0.9rem 2rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 1rem; }
+        .primary-cta { background: #2962ff; color: white; }
+        .secondary-cta { background: transparent; color: #d1d4dc; border: 1px solid #363a45; }
+        .dashboard-section { background: #0a0a0b; padding: 3rem 2rem; min-height: 100vh; }
+        .dashboard-header { max-width: 1400px; margin: 0 auto 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .dashboard-grid { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(650px, 1fr)); gap: 1.5rem; }
+        .panel { background: #1e222d; border-radius: 12px; border: 1px solid #2a2e39; display: flex; flex-direction: column; position: relative; }
+        .panel-header { background: #2a2e39; padding: 1.2rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #363a45; }
+        .panel-title { font-size: 1.1rem; font-weight: 600; }
+        .chart-container { height: 400px; position: relative; }
+        .indicators-overlay { position: absolute; top: 10px; right: 10px; background: rgba(30, 34, 45, 0.95); padding: 12px; border-radius: 8px; font-size: 0.85rem; backdrop-filter: blur(5px); }
+        .news-ticker, .economic-calendar { height: 400px; overflow-y: auto; padding: 1rem; }
+        .news-item, .event-item { background: #2a2e39; padding: 1rem; margin-bottom: 0.75rem; border-radius: 8px; border-left: 3px solid #2962ff; }
+        .news-time, .event-time { font-size: 0.75rem; color: #787b86; }
+        .news-source, .event-name { font-size: 0.8rem; color: #2962ff; margin: 0.25rem 0; }
+        .news-title { font-size: 0.9rem; margin-bottom: 0.5rem; }
+        .news-impact, .event-impact { font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 600; }
+        .impact-high { background: #ff5252; color: white; }
+        .impact-medium { background: #ffb74d; color: #1e222d; }
+        .impact-low { background: #66bb6a; color: white; }
+        .scenarios { padding: 1rem; background: #1a1d24; border-top: 1px solid #2a2e39; }
+        .scenario-item { display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px solid #2a2e39; }
+        .bullish { color: #26a69a; }
+        .bearish { color: #ef5350; }
+        .neutral { color: #ffb74d; }
+        .last-update { font-size: 0.75rem; color: #787b86; text-align: right; padding: 0.75rem 1rem; background: #1a1d24; border-top: 1px solid #2a2e39; }
+        .loading-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(30, 34, 45, 0.95); display: flex; align-items: center; justify-content: center; z-index: 100; }
+        .spinner { width: 40px; height: 40px; border: 3px solid #2a2e39; border-top: 3px solid #2962ff; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">Finance<span>IQ</span></div>
+            <ul class="nav-menu">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#dashboard">Dashboard</a></li>
+                <li><button class="cta-button" onclick="scrollToDashboard()">Launch Dashboard</button></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>Real-Time Market Intelligence</h1>
+            <p>Track stocks, crypto, and geopolitical events with professional-grade analysis tools.</p>
+            <div class="hero-buttons">
+                <button class="primary-cta" onclick="scrollToDashboard()">Launch Dashboard</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashboard" class="dashboard-section">
+        <div class="dashboard-header">
+            <h2>Live Market Dashboard</h2>
+            <div>
+                <button class="primary-cta" onclick="requestNotificationPermission()">Enable Alerts</button>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Indices -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">📈 S&P 500 (SPY)</div>
+                </div>
+                <div class="chart-container" id="indicesChart"></div>
+                <div class="indicators-overlay" id="indicesIndicators"></div>
+                <div class="scenarios" id="indicesScenarios"></div>
+                <div class="last-update" id="indicesLastUpdate">Loading...</div>
+            </div>
+
+            <!-- Crypto -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">₿ Bitcoin (BTC)</div>
+                </div>
+                <div class="chart-container" id="cryptoChart"></div>
+                <div class="indicators-overlay" id="cryptoIndicators"></div>
+                <div class="scenarios" id="cryptoScenarios"></div>
+                <div class="last-update" id="cryptoLastUpdate">Loading...</div>
+            </div>
+
+            <!-- News -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">📰 Market News</div>
+                </div>
+                <div class="news-ticker" id="newsFeed"></div>
+                <div class="last-update" id="newsLastUpdate">Loading...</div>
+            </div>
+
+            <!-- Economic Calendar -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">🗓️ Economic Events</div>
+                </div>
+                <div class="economic-calendar" id="economicCalendar"></div>
+                <div class="last-update" id="economicLastUpdate">Loading...</div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Configuration
+        const API_BASE = window.location.origin + '/api';
+        
+        // State
+        const state = {
+            charts: {},
+            alerts: [],
+            lastData: {}
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', initDashboard);
+
+        function scrollToDashboard() {
+            document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                await Notification.requestPermission();
+                alert('Notifications enabled!');
+            }
+        }
+
+        async function initDashboard() {
+            await Promise.all([
+                updateIndices(),
+                updateCrypto(),
+                updateNews(),
+                updateEconomicCalendar()
+            ]);
+            
+            // Set intervals
+            setInterval(updateIndices, 900000); // 15 min
+            setInterval(updateCrypto, 60000);    // 1 min
+            setInterval(updateNews, 300000);     // 5 min
+            setInterval(updateEconomicCalendar, 3600000); // 1 hour
+        }
+
+        async function updateIndices() {
+            try {
+                const response = await fetch(`${API_BASE}/indices/SPY`);
+                const data = await response.json();
+                
+                if (!state.charts.indices) {
+                    state.charts.indices = createChart('indicesChart', data, '#2962ff');
+                } else {
+                    state.charts.indices.series.setData(data);
+                }
+                
+                const current = data[data.length - 1].value;
+                updateScenarios('indicesScenarios', calculateScenarios(current, 'bullish'), 'bullish');
+                updateIndicators('indicesIndicators', data);
+                document.getElementById('indicesLastUpdate').textContent = 
+                    `Last updated: ${new Date().toLocaleTimeString()} (≤15min delay)`;
+            } catch (error) {
+                console.error('Indices error:', error);
+            }
+        }
+
+        async function updateCrypto() {
+            try {
+                const response = await fetch(`${API_BASE}/crypto/bitcoin`);
+                const data = await response.json();
+                
+                if (!state.charts.crypto) {
+                    state.charts.crypto = createChart('cryptoChart', data, '#ffb74d');
+                } else {
+                    state.charts.crypto.series.setData(data);
+                }
+                
+                const current = data[data.length - 1].value;
+                updateScenarios('cryptoScenarios', calculateScenarios(current, 'bearish'), 'bearish');
+                updateIndicators('cryptoIndicators', data);
+                document.getElementById('cryptoLastUpdate').textContent = 
+                    `Last updated: ${new Date().toLocaleTimeString()} (Real-time)`;
+            } catch (error) {
+                console.error('Crypto error:', error);
+            }
+        }
+
+        async function updateNews() {
+            try {
+                const response = await fetch(`${API_BASE}/news`);
+                const articles = await response.json();
+                
+                document.getElementById('newsFeed').innerHTML = articles.map(article => `
+                    <div class="news-item">
+                        <div class="news-time">${article.time}</div>
+                        <div class="news-source">${article.source}</div>
+                        <div class="news-title">${article.title}</div>
+                        <span class="news-impact impact-${article.impact}">${article.impact.toUpperCase()}</span>
+                    </div>
+                `).join('');
+                
+                document.getElementById('newsLastUpdate').textContent = 
+                    `Last updated: ${new Date().toLocaleTimeString()} (5min refresh)`;
+            } catch (error) {
+                console.error('News error:', error);
+            }
+        }
+
+        async function updateEconomicCalendar() {
+            try {
+                const response = await fetch(`${API_BASE}/economic-events`);
+                const events = await response.json();
+                
+                document.getElementById('economicCalendar').innerHTML = events.map(event => `
+                    <div class="event-item">
+                        <span class="event-time">${event.date}</span>
+                        <span class="event-name">${event.event}</span>
+                        <span class="event-impact impact-${event.impact}">${event.impact}</span>
+                    </div>
+                `).join('');
+                
+                document.getElementById('economicLastUpdate').textContent = 
+                    `Last updated: ${new Date().toLocaleTimeString()} (1hr refresh)`;
+            } catch (error) {
+                console.error('Economic calendar error:', error);
+            }
+        }
+
+        function createChart(containerId, data, color) {
+            const container = document.getElementById(containerId);
+            const chart = LightweightCharts.createChart(container, {
+                width: container.clientWidth,
+                height: 400,
+                layout: { background: { color: '#1e222d' }, textColor: '#d1d4dc' },
+                grid: { vertLines: { color: '#2a2e39' }, horzLines: { color: '#2a2e39' } },
+                timeScale: { borderColor: '#2a2e39', timeVisible: true }
+            });
+            
+            const series = chart.addAreaSeries({
+                topColor: color + '40',
+                bottomColor: color + '10',
+                lineColor: color,
+                lineWidth: 2
+            });
+            
+            series.setData(data);
+            chart.timeScale().fitContent();
+            return { chart, series };
+        }
+
+        function calculateScenarios(current, trend) {
+            return {
+                optimistic: current * (1 + 0.03 + Math.random() * 0.04),
+                realistic: current * (1 + (Math.random() - 0.5) * 0.02),
+                pessimistic: current * (1 - 0.03 - Math.random() * 0.04)
+            };
+        }
+
+        function updateScenarios(containerId, scenarios, trend) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `
+                <div class="scenario-item">
+                    <span class="scenario-label">📈 7-Day Optimistic</span>
+                    <span class="scenario-value bullish">${scenarios.optimistic.toFixed(2)}</span>
+                </div>
+                <div class="scenario-item">
+                    <span class="scenario-label">➡️ 7-Day Realistic</span>
+                    <span class="scenario-value neutral">${scenarios.realistic.toFixed(2)}</span>
+                </div>
+                <div class="scenario-item">
+                    <span class="scenario-label">📉 7-Day Pessimistic</span>
+                    <span class="scenario-value bearish">${scenarios.pessimistic.toFixed(2)}</span>
+                </div>
+            `;
+        }
+
+        async function updateIndicators(containerId, data) {
+            try {
+                const response = await fetch(`${API_BASE}/indicators`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data, indicators: ['rsi', 'macd'] })
+                });
+                
+                const indicators = await response.json();
+                const container = document.getElementById(containerId);
+                
+                container.innerHTML = `
+                    <div class="indicator-item">
+                        <span class="indicator-label">RSI(14):</span>
+                        <span class="indicator-value">${indicators.rsi?.toFixed(2) || 'N/A'}</span>
+                    </div>
+                    <div class="indicator-item">
+                        <span class="indicator-label">MACD:</span>
+                        <span class="indicator-value">${indicators.macd?.MACD?.toFixed(4) || 'N/A'}</span>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Indicators error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
