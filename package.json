@@ -12,7 +12,7 @@
     "axios": "^1.6.0",
     "ioredis": "^5.3.2",
     "ws": "^8.14.2",
-    "technicalindicators": "^4.0.0",
+    "technicalindicators": "^3.0.0",
     "dotenv": "^16.3.1"
   }
 }
